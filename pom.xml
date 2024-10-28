@@ -13,5 +13,32 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <!-- OpenCV Dependency -->
+<!--        <dependency>-->
+<!--            <groupId>org.bytedeco</groupId>-->
+<!--            <artifactId>opencv-platform</artifactId>-->
+<!--            <version>4.9.0-1.5.10</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.tensorflow</groupId>-->
+<!--            <artifactId>tensorflow</artifactId>-->
+<!--            <version>1.15.0</version>-->
+<!--        </dependency>-->
+
+
+        <!-- Java Native Access (JNA) Dependency (可能需要) -->
+<!--        <dependency>-->
+<!--            <groupId>net.java.dev.jna</groupId>-->
+<!--            <artifactId>jna</artifactId>-->
+<!--            <version>5.10.0</version> &lt;!&ndash; 请根据最新版本进行更新 &ndash;&gt;-->
+<!--        </dependency>-->
+    </dependencies>
+
 
 </project>

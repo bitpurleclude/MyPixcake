@@ -1,24 +1,24 @@
 package org.bitPurpleCloud;
 
+import org.bitPurpleCloud.util.GetSharpness;
 import org.opencv.core.*;
-import org.opencv.core.MatOfFloat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.MatOfRect2d;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 
+
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class ImageSharpness {
 
     static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
     public static void main(String[] args) {
-        String imagePath = "src/main/resources/testJPG/good.JPG";
+        String imagePath = "src/main/resources/testJPG/DSC_1580.NEF";
         String modelWeights = "src/main/resources/model/yolov3.weights";
         String modelConfig = "src/main/resources/model/yolov3.cfg";
 
@@ -92,7 +92,7 @@ public class ImageSharpness {
                 // 计算清晰度评分
                 Rect intBox = new Rect((int) box.x, (int) box.y, (int) box.width, (int) box.height);
                 Mat subject = new Mat(image, intBox);
-                double blurScore = calculateLaplacianVariance(subject);
+                double blurScore = GetSharpness.getQualityScore(subject);
                 String blurText = String.format("Sharpness: %.2f", blurScore);
 
                 // 在图像上绘制红框
@@ -110,14 +110,5 @@ public class ImageSharpness {
         System.out.println("Detection completed. Result saved to 'src/main/resources/output/result_with_sharpness.jpg'");
     }
 
-    // 计算Laplacian方差，用于清晰度评分
-    private static double calculateLaplacianVariance(Mat image) {
-        Mat laplacian = new Mat();
-        Imgproc.Laplacian(image, laplacian, CvType.CV_64F);
 
-        MatOfDouble variance = new MatOfDouble();
-        Core.meanStdDev(laplacian, new MatOfDouble(), variance);
-
-        return Math.pow(variance.get(0, 0)[0], 2);
-    }
 }
