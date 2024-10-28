@@ -1,10 +1,14 @@
 package org.bitPurpleCloud;
 
 import org.opencv.core.*;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfRect2d;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.utils.Converters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,45 +40,68 @@ public class ImageSharpness {
         List<String> outBlobNames = net.getUnconnectedOutLayersNames();
         net.forward(result, outBlobNames);
 
-        // 解析检测结果并在图像上绘制红框和标记清晰度
-        for (Mat detection : result) {
-            for (int i = 0; i < detection.rows(); i++) {
-                Mat row = detection.row(i);
-                if (row.cols() > 5) {
-                    Mat scores = row.colRange(5, row.cols());
-                    Core.MinMaxLocResult mm = Core.minMaxLoc(scores);
-                    float confidence = (float) mm.maxVal;
+        // 存储检测框、置信度和类别ID
+        List<Rect2d> boxes = new ArrayList<>();
+        List<Float> confidences = new ArrayList<>();
 
-                    // 检测置信度阈值
-                    if (confidence > 0.5) {
-                        int centerX = (int) (row.get(0, 0)[0] * image.width());
-                        int centerY = (int) (row.get(0, 1)[0] * image.height());
-                        int width = (int) (row.get(0, 2)[0] * image.width());
-                        int height = (int) (row.get(0, 3)[0] * image.height());
+        // 解析检测结果
+        for (Mat level : result) {
+            for (int i = 0; i < level.rows(); ++i) {
+                Mat row = level.row(i);
+                Mat scores = row.colRange(5, level.cols());
+                Core.MinMaxLocResult mm = Core.minMaxLoc(scores);
+                float confidence = (float) mm.maxVal;
 
-                        // 计算主体矩形框
-                        Rect subjectRect = new Rect(centerX - width / 2, centerY - height / 2, width, height);
+                // 检测置信度阈值
+                if (confidence > 0.5) {
+                    float centerX = (float) (row.get(0, 0)[0] * image.width());
+                    float centerY = (float) (row.get(0, 1)[0] * image.height());
+                    float width = (float) (row.get(0, 2)[0] * image.width());
+                    float height = (float) (row.get(0, 3)[0] * image.height());
 
-                        // 确保 Rect 在图像范围内
-                        if (subjectRect.x >= 0 && subjectRect.y >= 0 &&
-                                subjectRect.x + subjectRect.width <= image.width() &&
-                                subjectRect.y + subjectRect.height <= image.height()) {
+                    double left = centerX - width / 2;
+                    double top = centerY - height / 2;
 
-                            // 计算清晰度评分
-                            Mat subject = new Mat(image, subjectRect);
-                            double blurScore = calculateLaplacianVariance(subject);
-                            String blurText = String.format("Sharpness: %.2f", blurScore);
+                    Rect2d rect = new Rect2d(left, top, width, height);
 
-                            // 在图像上绘制红框
-                            Imgproc.rectangle(image, subjectRect, new Scalar(0, 0, 255), 2);
-
-                            // 在框上方标记清晰度评分
-                            int textX = subjectRect.x;
-                            int textY = subjectRect.y - 10;  // 将文本放在框的上方
-                            Imgproc.putText(image, blurText, new Point(textX, textY), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0, 0, 255), 1);
-                        }
-                    }
+                    // 添加到列表中
+                    boxes.add(rect);
+                    confidences.add(confidence);
                 }
+            }
+        }
+
+        // 应用非极大值抑制
+        float nmsThreshold = 0.4f;
+        MatOfFloat confidencesMat = new MatOfFloat(Converters.vector_float_to_Mat(confidences));
+        MatOfRect2d boxesMat = new MatOfRect2d();
+        boxesMat.fromList(boxes);
+        MatOfInt indices = new MatOfInt();
+        Dnn.NMSBoxes(boxesMat, confidencesMat, 0.5f, nmsThreshold, indices);
+
+        // 绘制检测框并计算清晰度
+        int[] indicesArray = indices.toArray();
+        for (int idx : indicesArray) {
+            Rect2d box = boxes.get(idx);
+
+            // 确保 Rect 在图像范围内
+            if (box.x >= 0 && box.y >= 0 &&
+                    box.x + box.width <= image.width() &&
+                    box.y + box.height <= image.height()) {
+
+                // 计算清晰度评分
+                Rect intBox = new Rect((int) box.x, (int) box.y, (int) box.width, (int) box.height);
+                Mat subject = new Mat(image, intBox);
+                double blurScore = calculateLaplacianVariance(subject);
+                String blurText = String.format("Sharpness: %.2f", blurScore);
+
+                // 在图像上绘制红框
+                Imgproc.rectangle(image, intBox, new Scalar(0, 0, 255), 2);
+
+                // 在框上方标记清晰度评分
+                int textX = intBox.x;
+                int textY = intBox.y - 10;  // 将文本放在框的上方
+                Imgproc.putText(image, blurText, new Point(textX, textY), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0, 0, 255), 1);
             }
         }
 
