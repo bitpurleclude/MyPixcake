@@ -18,7 +18,7 @@ public class ImageSharpness {
     static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
     public static void main(String[] args) {
-        String imagePath = "src/main/resources/testJPG/DSC_1580.NEF";
+        String imagePath = "src/main/resources/testJPG/bad.JPG";
         String modelWeights = "src/main/resources/model/yolov3.weights";
         String modelConfig = "src/main/resources/model/yolov3.cfg";
 
